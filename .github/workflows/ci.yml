@@ -26,6 +26,8 @@ jobs:
           cache: pip
           cache-dependency-path: pyproject.toml
       - run: pip install .[test] tzdata
+        env:
+          STATICBUILD: ${{ matrix.os == 'windows-latest' && matrix.python-version == 'pypy-3.11' && 'true' || '' }}
       - env:
           LANG: en_US.UTF-8
           PYTHONIOENCODING: utf-8
