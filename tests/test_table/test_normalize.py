@@ -63,6 +63,50 @@ class TestNormalize(AgateTestCase):
         self.assertColumnNames(normalized_table, ['one', 'property', 'value'])
         self.assertColumnTypes(normalized_table, [Number, Text, Text])
 
+    def test_normalize_does_not_mutate_type_tester(self):
+        forced_value_type = Text()
+        tester = TypeTester(force={'value': forced_value_type})
+        force = tester._force
+        table = Table(self.rows, self.column_names, self.column_types)
+
+        normalized = table.normalize('one', 'three', column_types=tester)
+
+        self.assertColumnTypes(normalized, [Number, Text, Text])
+        self.assertIs(tester._force, force)
+        self.assertEqual(tester._force, {'value': forced_value_type})
+
+    def test_normalize_reuses_type_tester_with_different_key_types(self):
+        tester = TypeTester()
+        text_table = Table([('10', 2)], ['key', 'amount'], [Text(), Number()])
+        number_table = Table([(10, 2)], ['key', 'amount'], [Number(), Number()])
+
+        text_result = text_table.normalize('key', 'amount', column_types=tester)
+        number_result = number_table.normalize('key', 'amount', column_types=tester)
+
+        self.assertColumnTypes(text_result, [Text, Text, Number])
+        self.assertColumnTypes(number_result, [Number, Text, Number])
+        self.assertRows(number_result, [(10, 'amount', 2)])
+
+    def test_normalize_type_tester_key_override_takes_precedence(self):
+        text_type = Text()
+        tester = TypeTester(force={'one': text_type, 'value': text_type})
+        table = Table(self.rows, self.column_names, self.column_types)
+
+        normalized = table.normalize('one', 'three', column_types=tester)
+
+        self.assertColumnTypes(normalized, [Text, Text, Text])
+        self.assertEqual(tester._force, {'one': text_type, 'value': text_type})
+
+    def test_normalize_preserves_type_tester_options(self):
+        tester = TypeTester(limit=0)
+        table = Table(self.rows, self.column_names, self.column_types)
+
+        normalized = table.normalize('one', 'three', column_types=tester)
+
+        self.assertColumnTypes(normalized, [Text, Text, Text])
+        self.assertEqual(tester._limit, 0)
+        self.assertEqual(tester._force, {})
+
     def test_normalize_multiple_fields(self):
         table = Table(self.rows, self.column_names, self.column_types)
 
