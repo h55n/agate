@@ -1,0 +1,50 @@
+name: Windows latest-PyPy MSVC 14.44 diagnostic
+on:
+  push:
+    branches: [diagnostic/windows-pypy-msvc1444]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows-pypy:
+    if: github.repository == 'h55n/agate' && github.ref == 'refs/heads/diagnostic/windows-pypy-msvc1444'
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: pypy-3.11
+      - name: Match lxml library toolset, install, and test
+        shell: cmd
+        run: |
+          for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.14.44.17.14.x86.x64 -property installationPath`) do set "VSROOT=%%i"
+          if not defined VSROOT exit /b 1
+          call "%VSROOT%\VC\Auxiliary\Build\vcvarsall.bat" x64 -vcvars_ver=14.44
+          if errorlevel 1 exit /b 1
+          if not "%VCToolsVersion:~0,5%"=="14.44" exit /b 1
+          set DISTUTILS_USE_SDK=1
+          set MSSdk=1
+          set STATICBUILD=true
+          set LANG=en_US.UTF-8
+          set PYTHONIOENCODING=utf-8
+          set PYTHONUTF8=1
+          echo Runner image: %ImageOS% %ImageVersion%
+          echo Toolset: %VCToolsVersion%
+          where cl
+          if errorlevel 1 exit /b 1
+          echo int main(void) {return 0;} > "%RUNNER_TEMP%\agate-toolset.c"
+          cl /nologo /c /Bv "%RUNNER_TEMP%\agate-toolset.c" /Fo"%RUNNER_TEMP%\agate-toolset.obj"
+          if errorlevel 1 exit /b 1
+          python -VV
+          if errorlevel 1 exit /b 1
+          python -m pip install -v --no-cache-dir --no-binary=lxml ".[test]" tzdata
+          if errorlevel 1 exit /b 1
+          python -m pip freeze
+          if errorlevel 1 exit /b 1
+          python -m pytest --cov agate
+          if errorlevel 1 exit /b 1
+          python -c "import subprocess, sys; subprocess.run([sys.executable, '-c', 'import sys; import agate; agate.Table.from_csv(sys.stdin, sniff_limit=1)'], input='a,b,c\n1,2,3', text=True, check=True)"
+          if errorlevel 1 exit /b 1
+          python charts.py
+          if errorlevel 1 exit /b 1
