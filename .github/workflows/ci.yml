@@ -5,6 +5,7 @@ jobs:
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [macos-latest, windows-latest, ubuntu-latest]
         python-version: ['3.10', '3.11', '3.12', '3.13', '3.14', pypy-3.11]
@@ -36,6 +37,7 @@ jobs:
       - name: Read from pipe
         run: printf 'a,b,c\n1,2,3' | python -c 'import sys; import agate; agate.Table.from_csv(sys.stdin, sniff_limit=1)'
       - run: python charts.py
-      - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+      - if: github.repository == 'wireservice/agate'
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           fail_ci_if_error: true
