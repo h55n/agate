@@ -8,6 +8,8 @@
 - fix: :meth:`.Table.pivot` uses the data type of the ``computation``, not of the ``aggregation``, for the pivoted columns. For example, a :class:`.Formula` that returns text no longer raises a ``CastError``.
 - fix: :class:`.MAD` returns the correct median absolute deviation.
 
+- fix: :meth:`.Table.normalize` no longer changes a supplied :class:`.TypeTester`.
+
 1.14.2 - February 27, 2026
 --------------------------
 
